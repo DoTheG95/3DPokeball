@@ -5,32 +5,71 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Environment } from '@react-three/drei';
 import * as THREE from 'three';
 
-function Pokeball({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolean) => void }) {
-  const hingeRef = useRef<THREE.Group>(null!);
-  const pokeball_open = new Audio("/pokeball_open.mp3");
+interface PokeballProps {
+  isOpen: boolean;
+  setIsOpen: (v: boolean) => void;
+
+  openingSpeed?: number | null;
+  audioPlaybackSpeed?: number | null;
+  audioVolume?: number | null;
+
+  topColor?: string | null;
+  bottomColor?: string | null;
+}
+
+function  Pokeball({
+        isOpen,
+        setIsOpen,
+
+        openingSpeed,
+        audioPlaybackSpeed,
+        audioVolume,
+
+        topColor,
+        bottomColor,
+        }: PokeballProps) {
+
+    const openSpeed = openingSpeed ?? 0.1;
+    const playbackSpeed = audioPlaybackSpeed ?? 1.5;
+    const volume = audioVolume ?? 0.1;
+
+    const upperColor = topColor ?? "#e6002e";
+    const lowerColor = bottomColor ?? "#f3f3f3";
+    const hingeRef = useRef<THREE.Group>(null!);
+    // Sound effect state
+    const [soundeff, setSoundeff] = useState("/pokeball_open.mp3");
+
 
   useFrame(() => {
     if (hingeRef.current) {
       const targetRotation = isOpen ? -Math.PI * 0.55 : 0;
-      hingeRef.current.rotation.x = THREE.MathUtils.lerp(
+        hingeRef.current.rotation.x = THREE.MathUtils.lerp(
         hingeRef.current.rotation.x,
         targetRotation,
-        0.1
-      );
+        openSpeed
+        );
     }
   });
 
-  const playaudio=()=>{
-    if (isOpen) {
-        pokeball_open.currentTime = 0;
-        pokeball_open.volume = 0.1;
-        pokeball_open.play();
+  // Sound player for Pokeball opening and closing
+  const playOpenAudio=()=>{
+    if (!isOpen) { 
+        setSoundeff("/pokeball_return.mp3");
+    } else {
+        setSoundeff("/pokeball_open.mp3");
     }
+
+    const pokeballAudio = new Audio(soundeff);
+    
+    pokeballAudio.currentTime = 0;
+    pokeballAudio.volume = volume;
+    pokeballAudio.playbackRate = playbackSpeed;
+    pokeballAudio.play();
   }
 
-  const handleClick = (e: any) => {
+  const handleOpenClick = (e: any) => {
     e.stopPropagation();
-    playaudio(); 
+    playOpenAudio(); 
     setIsOpen(!isOpen);
   };
 
@@ -40,7 +79,12 @@ function Pokeball({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boole
         <group position={[0, 0, 1.2]}>
           <mesh castShadow receiveShadow>
             <sphereGeometry args={[1.2, 64, 64, 0, Math.PI * 2, 0, Math.PI * 0.48]} />
-            <meshStandardMaterial color="#e6002e" metalness={0.2} roughness={0.15} side={THREE.DoubleSide}/>
+            <meshStandardMaterial
+                color={upperColor}
+                metalness={0.2}
+                roughness={0.15}
+                side={THREE.DoubleSide}
+                />
             
           </mesh>
         </group>
@@ -49,7 +93,11 @@ function Pokeball({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boole
       {/* BOTTOM HALF (Static) */}
       <mesh castShadow receiveShadow>
         <sphereGeometry args={[1.2, 64, 64, 0, Math.PI * 2, Math.PI * 0.52, Math.PI * 0.48]} />
-        <meshStandardMaterial color="#f3f3f3" metalness={0.1} roughness={0.2} />
+        <meshStandardMaterial
+            color={lowerColor}
+            metalness={0.1}
+            roughness={0.2}
+        />
       </mesh>
 
       {/* INNER BLACK BAND / CORE */}
@@ -93,7 +141,7 @@ function Pokeball({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boole
         </mesh>
 
         {/* Invisible Click Target Box covering the button area */}
-        <mesh position={[0, 0, 0]} onClick={handleClick}>
+        <mesh position={[0, 0, 0]} onClick={handleOpenClick}>
           <boxGeometry args={[0.8, 0.3, 0.8]} />
           <meshBasicMaterial visible={false} />
         </mesh>
@@ -125,9 +173,9 @@ export default function Pokeball3D() {
         <OrbitControls 
           enablePan={false} 
           enableZoom={true} 
-          minDistance={3}
+          minDistance={10}
           target={[0, 0.2, 0]} 
-          maxPolarAngle={Math.PI / 2 + 0.3} // Prevents looking directly underneath completely
+          maxPolarAngle={Math.PI / 2 + 0.3}
         />
       </Canvas>
     </div>
